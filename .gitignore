@@ -245,6 +245,17 @@ Session.vim
 # Operating Systems
 # ============================================================================
 
+# Documentation files (do not upload to GitHub)
+*_READ_ME_FIRST.md
+START_HERE_DEPLOYMENT.md
+DEPLOYMENT_SUMMARY.md
+README_DEPLOYMENT.md
+DEPLOYMENT_FILES_SUMMARY.txt
+VERCEL_STEP_BY_STEP.txt
+docs/QUICK_DEPLOYMENT_START.md
+docs/VERCEL_WEBSITE_DEPLOYMENT_GUIDE.md
+docs/RENDER_DEPLOYMENT_FIX.md
+
 # macOS
 .DS_Store
 .AppleDouble

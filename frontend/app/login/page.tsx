@@ -29,7 +29,7 @@ export default function LoginPage() {
 
       login(response.data.access_token, email)
       toast.success('Login successful!')
-      router.push('/dashboard')
+      router.push('/')
     } catch (error: any) {
       console.error('Login error:', error)
       const message = error.response?.data?.detail || 'Login failed'

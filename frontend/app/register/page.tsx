@@ -41,7 +41,7 @@ export default function RegisterPage() {
 
       login(response.data.access_token, email)
       toast.success('Registration successful!')
-      router.push('/dashboard')
+      router.push('/')
     } catch (error: any) {
       console.error('Registration error:', error)
       const message = error.response?.data?.detail || 'Registration failed'

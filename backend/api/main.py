@@ -82,7 +82,8 @@ def get_predictor():
             try:
                 logger.info("Loading pre-trained BLIP model...")
                 from inference.pretrained_predictor import PretrainedPredictor
-                predictor = PretrainedPredictor(device=device)
+                model_name = os.getenv('PRETRAINED_MODEL', 'Salesforce/blip-image-captioning-large')
+                predictor = PretrainedPredictor(model_name=model_name, device=device)
                 logger.info("✓ Pre-trained model loaded successfully!")
             except Exception as e:
                 logger.error(f"Failed to load pre-trained model: {e}")

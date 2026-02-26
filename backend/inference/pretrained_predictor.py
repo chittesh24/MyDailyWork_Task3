@@ -61,19 +61,23 @@ class PretrainedPredictor:
             # Process image
             inputs = self.processor(image, return_tensors="pt").to(self.device)
             
-            # Generate caption
+            # Generate caption with improved parameters
             if method == "beam_search":
                 outputs = self.model.generate(
                     **inputs,
                     max_length=max_length,
                     num_beams=beam_width,
-                    early_stopping=True
+                    early_stopping=True,
+                    length_penalty=1.0,
+                    no_repeat_ngram_size=3,
+                    temperature=1.0
                 )
             else:  # greedy
                 outputs = self.model.generate(
                     **inputs,
                     max_length=max_length,
-                    num_beams=1
+                    num_beams=1,
+                    no_repeat_ngram_size=3
                 )
             
             # Decode caption
