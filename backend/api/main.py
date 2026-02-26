@@ -126,12 +126,23 @@ async def startup_event():
 
 
 @app.get("/")
+@app.head("/")
 async def root():
     """Health check endpoint."""
     return {
         "status": "running",
         "version": "1.0.0",
         "message": "Image Captioning API"
+    }
+
+
+@app.get("/health")
+async def health_check():
+    """Explicit health check endpoint for monitoring."""
+    return {
+        "status": "healthy",
+        "service": "image-captioning-api",
+        "version": "1.0.0"
     }
 
 
