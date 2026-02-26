@@ -81,7 +81,7 @@ def get_predictor():
             try:
                 logger.info("Initializing API-based predictor (Hugging Face Inference API)...")
                 from inference.api_predictor import APIPredictor
-                model_name = os.getenv('PRETRAINED_MODEL', 'nlpconnect/vit-gpt2-image-captioning')
+                model_name = os.getenv('PRETRAINED_MODEL', 'Salesforce/blip-image-captioning-base')
                 predictor = APIPredictor(model_name=model_name)
                 logger.info("✓ API-based predictor initialized successfully!")
                 logger.info("✓ ZERO MEMORY FOOTPRINT - Using external API")
@@ -95,7 +95,7 @@ def get_predictor():
             logger.warning("Custom models not supported in memory-constrained environment")
             logger.info("Using API predictor instead...")
             from inference.api_predictor import APIPredictor
-            model_name = os.getenv('PRETRAINED_MODEL', 'nlpconnect/vit-gpt2-image-captioning')
+            model_name = os.getenv('PRETRAINED_MODEL', 'Salesforce/blip-image-captioning-base')
             predictor = APIPredictor(model_name=model_name)
     
     return predictor

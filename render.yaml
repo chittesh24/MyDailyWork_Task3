@@ -24,7 +24,7 @@ services:
       - key: USE_PRETRAINED
         value: true
       - key: PRETRAINED_MODEL
-        value: nlpconnect/vit-gpt2-image-captioning
+        value: Salesforce/blip-image-captioning-base
       - key: TRANSFORMERS_CACHE
         value: /tmp/transformers_cache
       - key: HF_HOME
