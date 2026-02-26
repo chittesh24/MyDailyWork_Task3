@@ -1,0 +1,35 @@
+# Render deployment configuration
+
+services:
+  # Backend API
+  - type: web
+    name: image-caption-backend
+    env: python
+    region: oregon
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: DATABASE_URL
+        fromDatabase:
+          name: caption-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEVICE
+        value: cpu
+      - key: USE_PRETRAINED
+        value: true
+      - key: PRETRAINED_MODEL
+        value: Salesforce/blip-image-captioning-base
+      - key: ALLOWED_ORIGINS
+        value: https://your-frontend.vercel.app
+
+  # Database
+  - type: pgsql
+    name: caption-db
+    region: oregon
+    plan: free
+    databaseName: image_captions
+    databaseUser: postgres

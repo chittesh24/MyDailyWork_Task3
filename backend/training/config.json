@@ -1,0 +1,57 @@
+{
+  "model": {
+    "name": "CaptioningModel",
+    "architecture": "ResNet50-Transformer",
+    "embed_dim": 512,
+    "num_heads": 8,
+    "num_layers": 6,
+    "ff_dim": 2048,
+    "dropout": 0.1,
+    "max_seq_len": 52,
+    "pretrained_encoder": true,
+    "fine_tune_encoder": true,
+    "fine_tune_layers": 2
+  },
+  "data": {
+    "dataset_type": "coco",
+    "image_size": 224,
+    "max_caption_length": 50,
+    "vocab_threshold": 5,
+    "augmentation": {
+      "random_crop": true,
+      "random_flip": true,
+      "color_jitter": {
+        "brightness": 0.2,
+        "contrast": 0.2,
+        "saturation": 0.2
+      }
+    }
+  },
+  "training": {
+    "batch_size": 32,
+    "num_epochs": 20,
+    "learning_rate": 0.0003,
+    "encoder_lr": 0.0001,
+    "weight_decay": 0.0,
+    "optimizer": "AdamW",
+    "scheduler": "ReduceLROnPlateau",
+    "scheduler_params": {
+      "factor": 0.5,
+      "patience": 2
+    },
+    "gradient_clip": 5.0,
+    "use_amp": true,
+    "early_stopping_patience": 5,
+    "num_workers": 4
+  },
+  "evaluation": {
+    "metrics": ["BLEU-1", "BLEU-2", "BLEU-3", "BLEU-4", "METEOR", "ROUGE-L"],
+    "beam_width": 5,
+    "temperature": 1.0,
+    "max_gen_length": 50
+  },
+  "reproducibility": {
+    "seed": 42,
+    "deterministic": true
+  }
+}
