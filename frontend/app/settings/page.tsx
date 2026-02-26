@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Navbar from '@/components/Navbar'
 import { useAuthStore } from '@/store/authStore'
 import { useRouter } from 'next/navigation'
-
+import { useEffect } from 'react'
 export default function SettingsPage() {
   const { isAuthenticated, user } = useAuthStore()
   const router = useRouter()
@@ -12,8 +12,13 @@ export default function SettingsPage() {
   const [fontSize, setFontSize] = useState('medium')
   const [animations, setAnimations] = useState(true)
 
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/login')
+    }
+  }, [isAuthenticated, router])
+
   if (!isAuthenticated) {
-    router.push('/login')
     return null
   }
 
