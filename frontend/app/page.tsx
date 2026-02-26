@@ -64,6 +64,7 @@ export default function Home() {
                 inferenceTime={inferenceTime}
               />
             )}
+          </div>
         </div>
 
         {/* Features Section */}
