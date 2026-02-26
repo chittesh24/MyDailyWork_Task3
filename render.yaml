@@ -25,6 +25,10 @@ services:
         value: true
       - key: PRETRAINED_MODEL
         value: Salesforce/blip-image-captioning-base
+      - key: TRANSFORMERS_CACHE
+        value: /tmp/transformers_cache
+      - key: HF_HOME
+        value: /tmp/huggingface
       - key: ALLOWED_ORIGINS
         value: https://your-frontend.vercel.app
 

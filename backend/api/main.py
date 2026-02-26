@@ -71,25 +71,32 @@ predictor = None
 
 
 def get_predictor():
-    """Get or initialize predictor."""
+    """Get or initialize predictor with improved model."""
     global predictor
     if predictor is None:
         device = os.getenv('DEVICE', 'cpu')
         use_pretrained = os.getenv('USE_PRETRAINED', 'true').lower() == 'true'
         
         if use_pretrained:
-            # Use pre-trained BLIP model from Hugging Face
+            # Use improved BLIP model with optimized parameters
             try:
-                logger.info("Loading pre-trained BLIP model...")
-                from inference.pretrained_predictor import PretrainedPredictor
-                model_name = os.getenv('PRETRAINED_MODEL', 'Salesforce/blip-image-captioning-large')
-                predictor = PretrainedPredictor(model_name=model_name, device=device)
-                logger.info("✓ Pre-trained model loaded successfully!")
+                logger.info("Loading improved BLIP model with optimized inference...")
+                from inference.improved_predictor import get_improved_predictor
+                model_name = os.getenv('PRETRAINED_MODEL', 'Salesforce/blip-image-captioning-base')
+                predictor = get_improved_predictor(model_name=model_name, device=device)
+                logger.info("✓ Improved model loaded successfully!")
             except Exception as e:
-                logger.error(f"Failed to load pre-trained model: {e}")
-                logger.info("Falling back to demo predictor")
-                from inference.demo_predictor import DemoPredictor
-                predictor = DemoPredictor()
+                logger.error(f"Failed to load improved model: {e}")
+                logger.info("Trying fallback to standard pretrained model...")
+                try:
+                    from inference.pretrained_predictor import PretrainedPredictor
+                    predictor = PretrainedPredictor(model_name=model_name, device=device)
+                    logger.info("✓ Standard pre-trained model loaded")
+                except Exception as e2:
+                    logger.error(f"Fallback failed: {e2}")
+                    logger.warning("Using demo predictor - captions will be random!")
+                    from inference.demo_predictor import DemoPredictor
+                    predictor = DemoPredictor()
         else:
             # Use custom trained model
             model_path = os.getenv('MODEL_CHECKPOINT_PATH', 'checkpoints/best_model.pth')
@@ -373,11 +380,22 @@ async def generate_caption(
         start_time = time.time()
         
         predictor = get_predictor()
-        caption = predictor.predict(
+        
+        # Use improved prediction with quality check
+        result = predictor.predict(
             image_path,
             method=method,
-            beam_width=beam_width
+            beam_width=beam_width,
+            max_length=50,
+            temperature=1.0,
+            return_probs=True
         )
+        
+        # Handle different return types
+        if isinstance(result, dict):
+            caption = result.get("caption", "")
+        else:
+            caption = str(result)
         
         inference_time = (time.time() - start_time) * 1000  # ms
         

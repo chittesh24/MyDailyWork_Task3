@@ -3,6 +3,7 @@ torch==2.2.0
 torchvision==0.17.0
 transformers==4.35.0
 timm==0.9.12
+accelerate==0.25.0
 
 # Data Processing
 numpy==1.24.3
