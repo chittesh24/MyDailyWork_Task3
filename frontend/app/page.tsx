@@ -42,53 +42,28 @@ export default function Home() {
 
         {/* Main Content */}
         <div className="max-w-4xl mx-auto">
-          {!isAuthenticated ? (
-            <div className="glass rounded-2xl shadow-2xl p-8 text-center">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-                Get Started
-              </h2>
-              <p className="text-gray-600 dark:text-gray-300 mb-6">
-                Sign in or create an account to start generating captions
-              </p>
-              <div className="flex gap-4 justify-center">
-                <Link 
-                  href="/login"
-                  className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
-                >
-                  Sign In
-                </Link>
-                <Link 
-                  href="/register"
-                  className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
-                >
-                  Register
-                </Link>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-8">
-              <ImageUploader 
-                onCaptionGenerated={handleCaptionGenerated}
-                onUploadStart={handleUploadStart}
-              />
-              
-              {isLoading && (
-                <div className="glass rounded-2xl shadow-xl p-8">
-                  <div className="flex items-center justify-center space-x-3">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-                    <span className="text-gray-700 dark:text-gray-300">Generating caption...</span>
-                  </div>
+          {/* Demo mode - no authentication required */}
+          <div className="space-y-8">
+            <ImageUploader 
+              onCaptionGenerated={handleCaptionGenerated}
+              onUploadStart={handleUploadStart}
+            />
+            
+            {isLoading && (
+              <div className="glass rounded-2xl shadow-xl p-8">
+                <div className="flex items-center justify-center space-x-3">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                  <span className="text-gray-700 dark:text-gray-300">Generating caption...</span>
                 </div>
-              )}
-              
-              {caption && !isLoading && (
-                <CaptionResult 
-                  caption={caption}
-                  inferenceTime={inferenceTime}
-                />
-              )}
-            </div>
-          )}
+              </div>
+            )}
+            
+            {caption && !isLoading && (
+              <CaptionResult 
+                caption={caption}
+                inferenceTime={inferenceTime}
+              />
+            )}
         </div>
 
         {/* Features Section */}

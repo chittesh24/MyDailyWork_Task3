@@ -43,9 +43,10 @@ export default function ImageUploader({ onCaptionGenerated, onUploadStart }: Ima
       const formData = new FormData()
       formData.append('file', file)
 
-      const response = await axios.post(`${API_URL}/caption`, formData, {
+      // Use demo endpoint (no auth required) for easier deployment
+      // For production with auth, use: `${API_URL}/caption`
+      const response = await axios.post(`${API_URL}/demo/caption`, formData, {
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'multipart/form-data',
         },
       })

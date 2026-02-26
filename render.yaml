@@ -30,7 +30,7 @@ services:
       - key: HF_HOME
         value: /tmp/huggingface
       - key: ALLOWED_ORIGINS
-        value: https://your-frontend.vercel.app
+        value: "*"
 
   # Database
   - type: pgsql
