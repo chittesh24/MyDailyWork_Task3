@@ -71,49 +71,32 @@ predictor = None
 
 
 def get_predictor():
-    """Get or initialize predictor with improved model."""
+    """Get or initialize predictor using Hugging Face API (zero memory footprint!)."""
     global predictor
     if predictor is None:
-        device = os.getenv('DEVICE', 'cpu')
         use_pretrained = os.getenv('USE_PRETRAINED', 'true').lower() == 'true'
         
         if use_pretrained:
-            # Use improved BLIP model with optimized parameters
+            # Use Hugging Face Inference API - NO local model loading!
             try:
-                logger.info("Loading improved BLIP model with optimized inference...")
-                from inference.improved_predictor import get_improved_predictor
-                model_name = os.getenv('PRETRAINED_MODEL', 'Salesforce/blip-image-captioning-base')
-                predictor = get_improved_predictor(model_name=model_name, device=device)
-                logger.info("✓ Improved model loaded successfully!")
+                logger.info("Initializing API-based predictor (Hugging Face Inference API)...")
+                from inference.api_predictor import APIPredictor
+                model_name = os.getenv('PRETRAINED_MODEL', 'nlpconnect/vit-gpt2-image-captioning')
+                predictor = APIPredictor(model_name=model_name)
+                logger.info("✓ API-based predictor initialized successfully!")
+                logger.info("✓ ZERO MEMORY FOOTPRINT - Using external API")
             except Exception as e:
-                logger.error(f"Failed to load improved model: {e}")
-                logger.info("Trying fallback to standard pretrained model...")
-                try:
-                    from inference.pretrained_predictor import PretrainedPredictor
-                    predictor = PretrainedPredictor(model_name=model_name, device=device)
-                    logger.info("✓ Standard pre-trained model loaded")
-                except Exception as e2:
-                    logger.error(f"Fallback failed: {e2}")
-                    logger.warning("Using demo predictor - captions will be random!")
-                    from inference.demo_predictor import DemoPredictor
-                    predictor = DemoPredictor()
-        else:
-            # Use custom trained model
-            model_path = os.getenv('MODEL_CHECKPOINT_PATH', 'checkpoints/best_model.pth')
-            vocab_path = os.getenv('VOCAB_PATH', 'checkpoints/vocab.json')
-            
-            try:
-                predictor = CaptionPredictor(
-                    model_path=model_path,
-                    vocab_path=vocab_path,
-                    device=device
-                )
-                logger.info("Custom model loaded successfully")
-            except Exception as e:
-                logger.warning(f"Could not load custom model: {e}")
-                logger.info("Using demo predictor instead")
+                logger.error(f"API predictor failed: {e}")
+                logger.warning("Using demo predictor as fallback")
                 from inference.demo_predictor import DemoPredictor
                 predictor = DemoPredictor()
+        else:
+            # Use custom trained model (or demo as fallback)
+            logger.warning("Custom models not supported in memory-constrained environment")
+            logger.info("Using API predictor instead...")
+            from inference.api_predictor import APIPredictor
+            model_name = os.getenv('PRETRAINED_MODEL', 'nlpconnect/vit-gpt2-image-captioning')
+            predictor = APIPredictor(model_name=model_name)
     
     return predictor
 
