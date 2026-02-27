@@ -161,13 +161,27 @@ class TransformersInference {
     const startTime = performance.now();
 
     try {
+      // Convert data URL → blob URL if needed.
+      // Transformers.js v2 fetches blob: URLs correctly via RawImage.fromURL().
+      // data: URLs fail with "Unsupported input type: object".
+      let inputUrl = imageUrl;
+      let blobToRevoke: string | null = null;
+      if (imageUrl.startsWith('data:')) {
+        const res = await fetch(imageUrl);
+        const blob = await res.blob();
+        inputUrl = URL.createObjectURL(blob);
+        blobToRevoke = inputUrl;
+      }
+
       // Generate caption
-      const result = await this.captioner(imageUrl, {
+      const result = await this.captioner(inputUrl, {
         max_new_tokens: maxLength,
         num_beams: numBeams,
         temperature: temperature,
-        do_sample: false, // Deterministic for best quality
+        do_sample: false,
       });
+
+      if (blobToRevoke) URL.revokeObjectURL(blobToRevoke);
 
       const inferenceTime = performance.now() - startTime;
 
@@ -210,13 +224,25 @@ class TransformersInference {
       throw new Error('Model not loaded');
     }
 
-    const results = await this.captioner(imageUrl, {
+    // Convert data URL → blob URL if needed (same as generateCaption)
+    let inputUrl = imageUrl;
+    let blobToRevoke: string | null = null;
+    if (imageUrl.startsWith('data:')) {
+      const res = await fetch(imageUrl);
+      const blob = await res.blob();
+      inputUrl = URL.createObjectURL(blob);
+      blobToRevoke = inputUrl;
+    }
+
+    const results = await this.captioner(inputUrl, {
       max_new_tokens: 50,
       num_beams: 5,
       num_return_sequences: count,
       do_sample: true,
       temperature: 0.8,
     });
+
+    if (blobToRevoke) URL.revokeObjectURL(blobToRevoke);
 
     return Array.isArray(results) 
       ? results.map((r: any) => ({

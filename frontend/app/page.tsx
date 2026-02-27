@@ -15,6 +15,9 @@ export default function Home() {
   const [loadingProgress, setLoadingProgress] = useState(0)
   const [loadingMessage, setLoadingMessage] = useState('')
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  // Keep the File reference so we can create a blob URL for inference
+  const imageFileRef = useRef<File | null>(null)
+  const blobUrlRef = useRef<string | null>(null)
   const [caption, setCaption] = useState<string | null>(null)
   const [inferenceTime, setInferenceTime] = useState<number | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -37,6 +40,13 @@ export default function Home() {
       }
     }
     loadTransformers()
+  }, [])
+
+  // Cleanup blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current)
+    }
   }, [])
 
   // Load AI model
@@ -89,6 +99,14 @@ export default function Home() {
     const file = acceptedFiles[0]
     if (!file) return
 
+    // Revoke previous blob URL to free memory
+    if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current)
+
+    // Store file reference — blob URL is the most reliable input for Transformers.js v2
+    imageFileRef.current = file
+    blobUrlRef.current = URL.createObjectURL(file)
+
+    // Data URL only for visual preview
     const reader = new FileReader()
     reader.onload = (e) => {
       setImagePreview(e.target?.result as string)
@@ -106,9 +124,9 @@ export default function Home() {
     disabled: isGenerating || isLoadingModel,
   })
 
-  // Generate caption — pass the data URL string directly (fixes "Unsupported input type: object")
+  // Generate caption using blob URL — most reliable input for Transformers.js v2
   const generateCaption = async () => {
-    if (!imagePreview) {
+    if (!blobUrlRef.current) {
       toast.error('Please upload an image first')
       return
     }
@@ -123,8 +141,10 @@ export default function Home() {
     const startTime = performance.now()
 
     try {
-      // Pass the data URL string directly — Transformers.js v2 handles this correctly
-      const result = await captioner(imagePreview, {
+      // Pass blob URL string directly — Transformers.js v2 fetches blob: URLs correctly
+      // via its internal RawImage.fromURL(), unlike data: URLs which fail with
+      // "Unsupported input type: object" due to how the fetch response is handled.
+      const result = await captioner(blobUrlRef.current, {
         max_new_tokens: 50,
         num_beams: 5,
         do_sample: false,
@@ -146,6 +166,27 @@ export default function Home() {
       toast.error('Failed to generate caption. Please try again.')
     } finally {
       setIsGenerating(false)
+    }
+  }
+
+  // Load a sample image by fetching it → blob URL (no CORS issues with blob)
+  const loadSampleImage = async (url: string) => {
+    try {
+      const res = await fetch(url)
+      const blob = await res.blob()
+      if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current)
+      blobUrlRef.current = URL.createObjectURL(blob)
+      const dataUrl = await new Promise<string>((resolve) => {
+        const reader = new FileReader()
+        reader.onload = (e) => resolve(e.target?.result as string)
+        reader.readAsDataURL(blob)
+      })
+      setImagePreview(dataUrl)
+      setCaption(null)
+      setInferenceTime(null)
+      toast.success('Sample image loaded!')
+    } catch {
+      toast.error('Failed to load sample image')
     }
   }
 
@@ -238,6 +279,32 @@ export default function Home() {
                   ③ Get Caption
                 </span>
               </div>
+
+              {/* Sample Images */}
+              {captioner && (
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-3 font-semibold">
+                    Or try a sample image:
+                  </p>
+                  <div className="flex gap-3 flex-wrap">
+                    {[
+                      { label: '🐕 Dog', url: 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&q=80' },
+                      { label: '🏙️ City', url: 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=400&q=80' },
+                      { label: '🌊 Beach', url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&q=80' },
+                      { label: '🐱 Cat', url: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=400&q=80' },
+                    ].map(({ label, url }) => (
+                      <button
+                        key={label}
+                        onClick={() => loadSampleImage(url)}
+                        disabled={isGenerating || isLoadingModel}
+                        className="px-3 py-2 rounded-lg text-xs font-medium glass-button border border-white/10 hover:border-primary-500/40 hover:text-primary-300 transition-all duration-200 disabled:opacity-40"
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* ── Step 1: Load Model ── */}
               {!captioner && !isLoadingModel && (
