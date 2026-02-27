@@ -3,16 +3,16 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 255, 255, 255;
-  --background-end-rgb: 255, 255, 255;
+  --foreground-rgb: 15, 23, 42; /* dark text for light mode */
+  --background-start-rgb: 248, 250, 252;
+  --background-end-rgb: 226, 232, 240;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
+    --foreground-rgb: 248, 250, 252; /* off-white text for dark mode */
+    --background-start-rgb: 11, 15, 25; /* #0B0F19 */
+    --background-end-rgb: 17, 24, 39; /* #111827 */
   }
 }
 
@@ -20,10 +20,12 @@ body {
   color: rgb(var(--foreground-rgb));
   background: linear-gradient(
       to bottom,
-      transparent,
+      rgb(var(--background-start-rgb)),
       rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+    );
+  background-attachment: fixed;
+  /* slight letter spacing as per typography rules */
+  letter-spacing: 0.015em;
 }
 
 /* Custom scrollbar */
@@ -33,28 +35,80 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .dark ::-webkit-scrollbar-track {
-  background: #1f2937;
+  background: rgba(0, 0, 0, 0.2);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #888;
+  background: rgba(255, 255, 255, 0.15);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: rgba(255, 255, 255, 0.25);
 }
 
 /* Loading skeleton */
 .skeleton {
-  @apply animate-pulse bg-gray-200 dark:bg-gray-700 rounded;
+  @apply animate-pulse bg-gray-200 dark:bg-white/10 rounded;
+  position: relative;
+  overflow: hidden;
 }
 
-/* Glassmorphism effect */
+.skeleton::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0,
+    rgba(255, 255, 255, 0.05) 20%,
+    rgba(255, 255, 255, 0.1) 60%,
+    rgba(255, 255, 255, 0)
+  );
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Base Glassmorphism utility */
 .glass {
-  @apply bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg;
+  @apply bg-white/60 dark:bg-white/5 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-lg;
+}
+
+/* Deep glass for elevated panels */
+.glass-panel {
+  @apply bg-white/80 dark:bg-[#151b2b]/60 backdrop-blur-2xl border border-white/30 dark:border-white/10 shadow-xl;
+}
+
+/* Glass element that feels clickable */
+.glass-button {
+  @apply bg-white/40 dark:bg-white/10 backdrop-blur-lg border border-white/40 dark:border-white/20 transition-all duration-300 hover:bg-white/60 dark:hover:bg-white/20;
+}
+
+/* Subtle glow effect for borders */
+.glow-border {
+  @apply border border-transparent;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1), 0 0 20px rgba(99, 102, 241, 0.2);
+}
+
+/* Glowing text effect */
+.text-glow {
+  text-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+}
+
+/* Focus ring accessibility */
+*:focus-visible {
+  @apply outline-none ring-2 ring-primary-500 ring-offset-2 ring-offset-gray-900;
 }
