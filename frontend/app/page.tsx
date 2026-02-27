@@ -160,7 +160,7 @@ export default function Home() {
               period="/mo"
               features={['10,000 requests / day', 'Priority support', 'Webhooks', 'Dedicated inference node']}
               buttonText="Upgrade to Pro"
-              highlight=true
+              highlight
             />
           </div>
         </div>
