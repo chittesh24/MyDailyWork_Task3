@@ -189,6 +189,9 @@ export function useImageCaptioning(options: UseImageCaptioningOptions = {}) {
   ): Promise<CaptionResult> => {
     const { preferBrowser = true } = options;
 
+    // Check if input is a File (works in both browser and SSR)
+    const isFile = typeof input === 'object' && input !== null && 'name' in input && 'type' in input;
+
     // If browser inference is preferred and available
     if (preferBrowser && typeof input === 'string') {
       try {
@@ -201,17 +204,17 @@ export function useImageCaptioning(options: UseImageCaptioningOptions = {}) {
         console.error('Browser inference failed:', browserError);
         
         // Fallback to API if enabled
-        if (fallbackToAPI && input instanceof File) {
+        if (fallbackToAPI && isFile) {
           console.log('Falling back to API...');
-          return await generateCaptionAPI(input);
+          return await generateCaptionAPI(input as File);
         }
         throw browserError;
       }
     }
 
     // Use API for File inputs or when browser is not preferred
-    if (input instanceof File) {
-      return await generateCaptionAPI(input);
+    if (isFile) {
+      return await generateCaptionAPI(input as File);
     }
 
     throw new Error('Invalid input type');

@@ -63,6 +63,12 @@ class TransformersInference {
    * Load the image captioning model (with caching)
    */
   async loadModel(modelKey: ModelKey = 'vit-gpt2', forceReload = false): Promise<void> {
+    // Only run in browser environment
+    if (typeof window === 'undefined') {
+      console.warn('Model loading skipped - not in browser environment');
+      return;
+    }
+
     const modelConfig = AVAILABLE_MODELS[modelKey];
     
     // Return existing model if already loaded and same model
@@ -131,6 +137,11 @@ class TransformersInference {
     model: string;
     method: string;
   }> {
+    // Only run in browser environment
+    if (typeof window === 'undefined') {
+      throw new Error('Transformers.js inference only available in browser');
+    }
+
     const {
       modelKey = 'vit-gpt2',
       maxLength = 50,
@@ -186,6 +197,11 @@ class TransformersInference {
     count: number = 3,
     modelKey: ModelKey = 'vit-gpt2'
   ): Promise<Array<{ caption: string; confidence?: number }>> {
+    // Only run in browser environment
+    if (typeof window === 'undefined') {
+      throw new Error('Transformers.js inference only available in browser');
+    }
+
     await this.loadModel(modelKey);
 
     if (!this.captioner) {
