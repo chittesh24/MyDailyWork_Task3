@@ -127,9 +127,20 @@ export default function BrowserDemoPage() {
     const startTime = performance.now();
 
     try {
-      const result = await captioner(imagePreview, {
+      // Create an Image element from the preview URL
+      const img = new Image();
+      img.src = imagePreview;
+      
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+      });
+
+      // Generate caption using the image element
+      const result = await captioner(img, {
         max_new_tokens: 50,
         num_beams: 5,
+        do_sample: false,
       });
 
       const time = Math.round(performance.now() - startTime);
