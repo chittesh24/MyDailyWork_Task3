@@ -57,7 +57,8 @@ export default function BrowserDemoPage() {
     setLoadingProgress(0);
 
     try {
-      const model = await pipeline('image-to-text', 'Salesforce/blip-image-captioning-base', {
+      // Use nlpconnect/vit-gpt2 which is fully supported by Transformers.js
+      const model = await pipeline('image-to-text', 'nlpconnect/vit-gpt2-image-captioning', {
         progress_callback: (progress: any) => {
           if (progress.status === 'progress' && progress.progress !== undefined) {
             setLoadingProgress(Math.round(progress.progress));

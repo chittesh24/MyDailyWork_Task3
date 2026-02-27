@@ -13,33 +13,34 @@ env.useBrowserCache = true;
 env.allowRemoteModels = true;
 
 // Model configurations - ordered by speed/accuracy tradeoff
+// Using models that are fully supported by Transformers.js
 export const AVAILABLE_MODELS = {
-  // Fastest - Good for real-time inference
+  // Fastest - Best supported model
   'vit-gpt2': {
-    name: 'Salesforce/blip-image-captioning-base',
+    name: 'nlpconnect/vit-gpt2-image-captioning',
     task: 'image-to-text',
     speed: 'fast',
     accuracy: 'good',
-    size: '~500MB',
-    description: 'BLIP Base - Best balance of speed and quality'
+    size: '~350MB',
+    description: 'ViT-GPT2 - Fast and reliable (recommended)'
   },
-  // Best accuracy - Slightly slower but excellent results
-  'blip-large': {
-    name: 'Salesforce/blip-image-captioning-large', 
+  // Alternative model - slightly larger
+  'vit-gpt2-coco': {
+    name: 'Xenova/vit-gpt2-image-captioning', 
     task: 'image-to-text',
-    speed: 'medium',
-    accuracy: 'excellent',
-    size: '~900MB',
-    description: 'BLIP Large - Highest quality captions'
+    speed: 'fast',
+    accuracy: 'good',
+    size: '~350MB',
+    description: 'ViT-GPT2 Xenova - Alternative fast model'
   },
-  // Alternative fast model
-  'git-base': {
-    name: 'microsoft/git-base-coco',
+  // Quantized version - smaller and faster
+  'vit-gpt2-quantized': {
+    name: 'Xenova/vit-gpt2-image-captioning',
     task: 'image-to-text', 
-    speed: 'fast',
+    speed: 'very fast',
     accuracy: 'good',
-    size: '~700MB',
-    description: 'GIT Base - Fast and reliable'
+    size: '~200MB',
+    description: 'ViT-GPT2 Quantized - Fastest option'
   }
 };
 
