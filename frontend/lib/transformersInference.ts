@@ -13,34 +13,35 @@ env.useBrowserCache = true;
 env.allowRemoteModels = true;
 
 // Model configurations - ordered by speed/accuracy tradeoff
-// Using models that are fully supported by Transformers.js
+// Using models that are fully supported by Transformers.js with ONNX files
 export const AVAILABLE_MODELS = {
-  // Fastest - Best supported model
+  // Recommended - Xenova models are optimized for Transformers.js
   'vit-gpt2': {
-    name: 'nlpconnect/vit-gpt2-image-captioning',
+    name: 'Xenova/vit-gpt2-image-captioning',
     task: 'image-to-text',
     speed: 'fast',
     accuracy: 'good',
     size: '~350MB',
     description: 'ViT-GPT2 - Fast and reliable (recommended)'
   },
-  // Alternative model - slightly larger
-  'vit-gpt2-coco': {
+  // Quantized version - smaller and faster
+  'vit-gpt2-quantized': {
+    name: 'Xenova/vit-gpt2-image-captioning',
+    task: 'image-to-text',
+    speed: 'very fast',
+    accuracy: 'good',
+    size: '~200MB',
+    description: 'ViT-GPT2 Quantized - Fastest option',
+    quantized: true
+  },
+  // Alternative caption style
+  'vision-encoder-decoder': {
     name: 'Xenova/vit-gpt2-image-captioning', 
     task: 'image-to-text',
     speed: 'fast',
     accuracy: 'good',
     size: '~350MB',
-    description: 'ViT-GPT2 Xenova - Alternative fast model'
-  },
-  // Quantized version - smaller and faster
-  'vit-gpt2-quantized': {
-    name: 'Xenova/vit-gpt2-image-captioning',
-    task: 'image-to-text', 
-    speed: 'very fast',
-    accuracy: 'good',
-    size: '~200MB',
-    description: 'ViT-GPT2 Quantized - Fastest option'
+    description: 'ViT-GPT2 - Alternative configuration'
   }
 };
 

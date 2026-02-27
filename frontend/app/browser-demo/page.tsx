@@ -57,8 +57,8 @@ export default function BrowserDemoPage() {
     setLoadingProgress(0);
 
     try {
-      // Use nlpconnect/vit-gpt2 which is fully supported by Transformers.js
-      const model = await pipeline('image-to-text', 'nlpconnect/vit-gpt2-image-captioning', {
+      // Use Xenova/vit-gpt2 which has proper ONNX files for browser
+      const model = await pipeline('image-to-text', 'Xenova/vit-gpt2-image-captioning', {
         progress_callback: (progress: any) => {
           if (progress.status === 'progress' && progress.progress !== undefined) {
             setLoadingProgress(Math.round(progress.progress));
