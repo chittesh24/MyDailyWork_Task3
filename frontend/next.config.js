@@ -27,24 +27,7 @@ const nextConfig = {
 
     return config;
   },
-  // Allow CORS for model downloads
-  async headers() {
-    return [
-      {
-        source: '/:path*',
-        headers: [
-          {
-            key: 'Cross-Origin-Opener-Policy',
-            value: 'same-origin',
-          },
-          {
-            key: 'Cross-Origin-Embedder-Policy',
-            value: 'require-corp',
-          },
-        ],
-      },
-    ];
-  },
+  transpilePackages: ['@xenova/transformers'],
 };
 
 module.exports = nextConfig;

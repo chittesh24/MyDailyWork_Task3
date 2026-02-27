@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
-import transformersInference, { ModelKey, AVAILABLE_MODELS } from '../lib/transformersInference';
+import transformersInference, { ModelKey, AVAILABLE_MODELS } from '@/lib/transformersInference';
 import axios from 'axios';
 
 interface CaptionResult {

@@ -7,8 +7,8 @@
 
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { useImageCaptioning } from '../hooks/useImageCaptioning';
-import type { ModelKey } from '../lib/transformersInference';
+import { useImageCaptioning } from '@/hooks/useImageCaptioning';
+import type { ModelKey } from '@/lib/transformersInference';
 import toast from 'react-hot-toast';
 
 export default function ImageCaptionGenerator() {
