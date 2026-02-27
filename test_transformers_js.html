@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transformers.js Browser Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        
+        .status.loading {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .status.ready {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #f3f4f6;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .upload-area {
+            border: 3px dashed #d1d5db;
+            border-radius: 15px;
+            padding: 60px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 20px 0;
+        }
+        
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f9fafb;
+        }
+        
+        .upload-area.active {
+            border-color: #667eea;
+            background: #eef2ff;
+        }
+        
+        img {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 10px;
+            margin: 20px 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .caption-result {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 20px 0;
+            font-size: 1.3em;
+            line-height: 1.6;
+        }
+        
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .metric {
+            background: #f9fafb;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .metric-label {
+            color: #6b7280;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+        
+        .metric-value {
+            color: #1f2937;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100%;
+            margin: 10px 0;
+        }
+        
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .feature {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .feature-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+        
+        .feature-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #1f2937;
+        }
+        
+        .feature-desc {
+            color: #6b7280;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 AI Image Captioning</h1>
+        <p class="subtitle">Powered by Transformers.js - 100% Free & Private</p>
+        
+        <div id="status" class="status loading">
+            ⏳ Initializing...
+        </div>
+        
+        <div id="progress-container" style="display: none;">
+            <div class="progress-bar">
+                <div id="progress-fill" class="progress-fill">0%</div>
+            </div>
+        </div>
+        
+        <button id="load-model" onclick="loadModel()">Load AI Model</button>
+        
+        <div id="upload-area" class="upload-area" style="display: none;">
+            <p style="font-size: 3em; margin-bottom: 10px;">📸</p>
+            <p style="font-size: 1.2em; font-weight: 600; margin-bottom: 10px;">Drop an image here</p>
+            <p style="color: #6b7280;">or click to browse</p>
+            <input type="file" id="file-input" accept="image/*" style="display: none;" onchange="handleFileSelect(event)">
+        </div>
+        
+        <img id="preview" style="display: none;">
+        
+        <button id="generate-btn" style="display: none;" onclick="generateCaption()">
+            Generate Caption
+        </button>
+        
+        <div id="result" style="display: none;">
+            <div class="caption-result">
+                <strong>Caption:</strong><br>
+                <span id="caption-text"></span>
+            </div>
+            
+            <div class="metrics">
+                <div class="metric">
+                    <div class="metric-label">Inference Time</div>
+                    <div class="metric-value" id="time-value">-</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Method</div>
+                    <div class="metric-value" id="method-value">-</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Model</div>
+                    <div class="metric-value" id="model-value">-</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">🖥️</div>
+                <div class="feature-title">Browser-Based</div>
+                <div class="feature-desc">No server needed</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">💰</div>
+                <div class="feature-title">100% Free</div>
+                <div class="feature-desc">No API limits</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🔒</div>
+                <div class="feature-title">Private</div>
+                <div class="feature-desc">Images stay local</div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1';
+        
+        let captioner = null;
+        let currentImage = null;
+        
+        window.loadModel = async function() {
+            const status = document.getElementById('status');
+            const progressContainer = document.getElementById('progress-container');
+            const progressFill = document.getElementById('progress-fill');
+            const loadBtn = document.getElementById('load-model');
+            const uploadArea = document.getElementById('upload-area');
+            
+            try {
+                status.className = 'status loading';
+                status.textContent = '📥 Downloading model (~500MB)...';
+                progressContainer.style.display = 'block';
+                loadBtn.disabled = true;
+                
+                captioner = await pipeline('image-to-text', 'Salesforce/blip-image-captioning-base', {
+                    progress_callback: (progress) => {
+                        if (progress.status === 'progress' && progress.progress !== undefined) {
+                            const percent = Math.round(progress.progress);
+                            progressFill.style.width = percent + '%';
+                            progressFill.textContent = percent + '%';
+                        } else if (progress.status === 'done') {
+                            status.textContent = '🔄 Initializing model...';
+                        }
+                    }
+                });
+                
+                status.className = 'status ready';
+                status.textContent = '✅ Model loaded! Ready to generate captions.';
+                progressContainer.style.display = 'none';
+                loadBtn.style.display = 'none';
+                uploadArea.style.display = 'block';
+                
+                setupDragDrop();
+            } catch (error) {
+                status.className = 'status error';
+                status.textContent = '❌ Error loading model: ' + error.message;
+                progressContainer.style.display = 'none';
+                loadBtn.disabled = false;
+                console.error(error);
+            }
+        };
+        
+        function setupDragDrop() {
+            const uploadArea = document.getElementById('upload-area');
+            const fileInput = document.getElementById('file-input');
+            
+            uploadArea.onclick = () => fileInput.click();
+            
+            uploadArea.ondragover = (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('active');
+            };
+            
+            uploadArea.ondragleave = () => {
+                uploadArea.classList.remove('active');
+            };
+            
+            uploadArea.ondrop = (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('active');
+                const file = e.dataTransfer.files[0];
+                if (file && file.type.startsWith('image/')) {
+                    handleFile(file);
+                }
+            };
+        }
+        
+        window.handleFileSelect = function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        };
+        
+        function handleFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                currentImage = e.target.result;
+                const preview = document.getElementById('preview');
+                preview.src = currentImage;
+                preview.style.display = 'block';
+                document.getElementById('generate-btn').style.display = 'block';
+                document.getElementById('result').style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        window.generateCaption = async function() {
+            if (!currentImage || !captioner) return;
+            
+            const status = document.getElementById('status');
+            const generateBtn = document.getElementById('generate-btn');
+            
+            try {
+                status.className = 'status loading';
+                status.textContent = '🤖 Generating caption...';
+                generateBtn.disabled = true;
+                
+                const startTime = performance.now();
+                
+                const result = await captioner(currentImage, {
+                    max_new_tokens: 50,
+                    num_beams: 5,
+                });
+                
+                const inferenceTime = Math.round(performance.now() - startTime);
+                
+                const caption = result[0]?.generated_text || result[0]?.text || 'No caption generated';
+                
+                document.getElementById('caption-text').textContent = caption;
+                document.getElementById('time-value').textContent = inferenceTime + 'ms';
+                document.getElementById('method-value').textContent = 'Browser';
+                document.getElementById('model-value').textContent = 'BLIP';
+                document.getElementById('result').style.display = 'block';
+                
+                status.className = 'status ready';
+                status.textContent = `✅ Caption generated in ${inferenceTime}ms!`;
+                generateBtn.disabled = false;
+                
+            } catch (error) {
+                status.className = 'status error';
+                status.textContent = '❌ Error: ' + error.message;
+                generateBtn.disabled = false;
+                console.error(error);
+            }
+        };
+    </script>
+</body>
+</html>
