@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: false,   // 🔥 IMPORTANT
+
   transpilePackages: ['@xenova/transformers'],
 
   webpack: (config, { isServer }) => {

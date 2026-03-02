@@ -1,5 +1,5 @@
 'use client'
-
+export const dynamic = 'force-dynamic'
 import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { useDropzone } from 'react-dropzone'
 import toast, { Toaster } from 'react-hot-toast'
@@ -15,27 +15,29 @@ export default function Home() {
   const [loadingMessage, setLoadingMessage] = useState('')
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const imageFileRef = useRef<File | null>(null)
-  const blobUrlRef = useRef<string | null>(null)
   const [caption, setCaption] = useState<string | null>(null)
   const [inferenceTime, setInferenceTime] = useState<number | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
-  const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const demoRef = useRef<HTMLDivElement>(null)
 
-  // Load Transformers.js (browser only)
+  // Load Transformers.js
   useEffect(() => {
     const loadTransformers = async () => {
       try {
-        const transformers = await import('@xenova/transformers')
+        const mod = await import('@xenova/transformers')
 
-        transformersPipeline = transformers.pipeline
+        const pipelineFn = mod.pipeline
+        transformersPipeline = pipelineFn
 
-        // ENV CONFIGURATION (CRITICAL FIX)
-        transformers.env.allowLocalModels = false
-        transformers.env.useBrowserCache = true
-        transformers.env.allowRemoteModels = true
+        // ✅ Stable browser config
+        mod.env.allowLocalModels = false
+        mod.env.allowRemoteModels = true
+        mod.env.useBrowserCache = true
 
-        // 🔥 FIX WASM BACKEND
+        // ✅ Disable workers (prevents crashes)
+        mod.env.backends.onnx.wasm.numThreads = 1
+        mod.env.backends.onnx.wasm.simd = false
+        mod.env.backends.onnx.wasm.proxy = false
 
         console.log('Transformers initialized correctly')
       } catch (error) {
@@ -44,13 +46,6 @@ export default function Home() {
     }
 
     loadTransformers()
-  }, [])
-
-  // Cleanup blob URLs
-  useEffect(() => {
-    return () => {
-      if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current)
-    }
   }, [])
 
   const loadModel = async () => {
@@ -66,19 +61,16 @@ export default function Home() {
     try {
       const model = await transformersPipeline(
         'image-to-text',
-        'Xenova/vit-gpt2-image-captioning',
-        {
-          progress_callback: (progress: any) => {
-            if (progress.status === 'progress') {
-              setLoadingProgress(Math.round(progress.progress))
-              setLoadingMessage(`Downloading model... ${Math.round(progress.progress)}%`)
+        'Xenova/blip-image-captioning-base',
+        { revision: 'main' }
+      )
             }
           },
         }
       )
 
-      setCaptioner(model)
-      toast.success('Model loaded successfully!')
+    setCaptioner(model)
+    toast.success('Model loaded successfully!')
     } catch (error) {
       console.error(error)
       toast.error('Model loading failed.')
@@ -89,82 +81,84 @@ export default function Home() {
   }
 
   const onDrop = useCallback((acceptedFiles: File[], fileRejections: any[]) => {
-    setErrorMsg(null)
-
     if (fileRejections.length > 0) {
-      setErrorMsg('Invalid file. Use PNG, JPG, WEBP under 10MB.')
+      toast.error('Invalid file. Use PNG, JPG, WEBP under 10MB.')
       return
     }
 
     const file = acceptedFiles[0]
-      if (!file) return
+    if (!file) return
 
-      if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current)
+    imageFileRef.current = file
 
-      imageFileRef.current = file
-      blobUrlRef.current = URL.createObjectURL(file)
-
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string)
-        setCaption(null)
-        setInferenceTime(null)
-      }
-      reader.readAsDataURL(file)
-    }, [])
-
-    const { getRootProps, getInputProps, isDragActive } = useDropzone({
-      onDrop,
-      accept: { 'image/*': ['.png', '.jpg', '.jpeg', '.webp'] },
-      maxFiles: 1,
-      maxSize: 10 * 1024 * 1024,
-      disabled: isGenerating || isLoadingModel,
-    })
-
-    const generateCaption = async () => {
-      if (!imageFileRef.current) {
-        toast.error('Please upload an image first')
-        return
-      }
-
-      if (!captioner) {
-        toast.error('Please load the AI model first')
-        return
-      }
-
-      setIsGenerating(true)
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      setImagePreview(e.target?.result as string)
       setCaption(null)
       setInferenceTime(null)
-
-      const startTime = performance.now()
-
-      try {
-        // ✅ BEST PRACTICE: pass File directly
-        const result = await captioner(imageFileRef.current, {
-          max_new_tokens: 50,
-          num_beams: 5,
-          do_sample: false,
-        })
-
-        const time = Math.round(performance.now() - startTime)
-
-        const text =
-          Array.isArray(result)
-            ? result[0]?.generated_text || result[0]?.text || ''
-            : result?.generated_text || result?.text || ''
-
-        if (!text) throw new Error('Empty caption returned')
-
-        setCaption(text.trim())
-        setInferenceTime(time)
-        toast.success(`Caption ready in ${time}ms! ✨`)
-      } catch (error) {
-        console.error('Caption generation failed:', error)
-        toast.error('Failed to generate caption.')
-      } finally {
-        setIsGenerating(false)
-      }
     }
+    reader.readAsDataURL(file)
+  }, [])
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: { 'image/*': ['.png', '.jpg', '.jpeg', '.webp'] },
+    maxFiles: 1,
+    maxSize: 10 * 1024 * 1024,
+    disabled: isGenerating || isLoadingModel,
+  })
+
+  const generateCaption = async () => {
+    if (!imageFileRef.current) {
+      toast.error('Please upload an image first')
+      return
+    }
+
+    if (!captioner) {
+      toast.error('Please load the AI model first')
+      return
+    }
+
+    setIsGenerating(true)
+    setCaption(null)
+    setInferenceTime(null)
+
+    const startTime = performance.now()
+
+    try {
+      // ✅ Create HTMLImageElement (MOST STABLE INPUT)
+      const img = new Image()
+      img.src = URL.createObjectURL(imageFileRef.current)
+
+      await new Promise((resolve) => {
+        img.onload = resolve
+      })
+
+      const result = await captioner(img, {
+        max_new_tokens: 50,
+        num_beams: 5,
+        do_sample: false,
+      })
+
+      const time = Math.round(performance.now() - startTime)
+
+      const text =
+        Array.isArray(result)
+          ? result[0]?.generated_text || result[0]?.text || ''
+          : result?.generated_text || result?.text || ''
+
+      if (!text) throw new Error('Empty caption returned')
+
+      setCaption(text.trim())
+      setInferenceTime(time)
+      toast.success(`Caption ready in ${time}ms! ✨`)
+    } catch (error) {
+      console.error('Caption generation failed:', error)
+      toast.error('Failed to generate caption.')
+    } finally {
+      setIsGenerating(false)
+    }
+  }
 
   const scrollToDemo = () => {
     demoRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -243,7 +237,10 @@ export default function Home() {
             )}
 
             {caption && (
-              <CaptionResult caption={caption} inferenceTime={inferenceTime} />
+              <CaptionResult
+                caption={caption}
+                inferenceTime={inferenceTime}
+              />
             )}
           </>
         )}
