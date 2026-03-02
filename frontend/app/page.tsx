@@ -126,7 +126,7 @@ export default function Home() {
 
   // Generate caption using blob URL — most reliable input for Transformers.js v2
   const generateCaption = async () => {
-    if (!blobUrlRef.current) {
+    if (!imageFileRef.current) {
       toast.error('Please upload an image first')
       return
     }
@@ -135,6 +135,45 @@ export default function Home() {
       return
     }
 
+    setIsGenerating(true)
+    setCaption(null)
+    setInferenceTime(null)
+    const startTime = performance.now()
+
+    try {
+      // Convert file → HTMLImageElement
+      const imageElement = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = new Image()
+        img.onload = () => resolve(img)
+        img.onerror = reject
+        img.src = URL.createObjectURL(imageFileRef.current!)
+      })
+
+      const result = await captioner(imageElement, {
+        max_new_tokens: 50,
+        num_beams: 5,
+        do_sample: false,
+      })
+
+      const time = Math.round(performance.now() - startTime)
+
+      const text =
+        Array.isArray(result)
+          ? result[0]?.generated_text || result[0]?.text || ''
+          : result?.generated_text || result?.text || ''
+
+      if (!text) throw new Error('Empty caption returned')
+
+      setCaption(text.trim())
+      setInferenceTime(time)
+      toast.success(`Caption ready in ${time}ms! ✨`)
+    } catch (error) {
+      console.error('Caption generation failed:', error)
+      toast.error('Failed to generate caption. Please try again.')
+    } finally {
+      setIsGenerating(false)
+    }
+  }
     setIsGenerating(true)
     setCaption(null)
     setInferenceTime(null)
