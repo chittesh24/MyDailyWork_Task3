@@ -1,114 +1,99 @@
 """
-Image Captioning using External API (Hugging Face Inference API)
-Zero memory footprint - no model loading required!
+Image Captioning using Hugging Face Inference API.
+Zero memory footprint - runs entirely on HuggingFace servers for free.
+Uses the new router endpoint that replaced the deprecated api-inference endpoint.
 """
 import requests
 import time
 from loguru import logger
 import os
+import base64
 
 
 class APIPredictor:
-    """Image captioning using Hugging Face Inference API - NO local model needed!"""
-    
-    def __init__(self, model_name: str = "nlpconnect/vit-gpt2-image-captioning", api_key: str = None):
-        """
-        Initialize API predictor.
-        
-        Args:
-            model_name: Hugging Face model identifier
-            api_key: Hugging Face API key (optional, can use free tier)
-        """
+    """Image captioning using Hugging Face Inference API - no local model needed."""
+
+    # Models to try in order - all free on HF Inference API
+    FALLBACK_MODELS = [
+        "Salesforce/blip-image-captioning-base",
+        "nlpconnect/vit-gpt2-image-captioning",
+        "microsoft/git-base-coco",
+    ]
+
+    def __init__(self, model_name: str = "Salesforce/blip-image-captioning-base", api_key: str = None):
         self.model_name = model_name
-        self.api_url = f"https://api-inference.huggingface.co/models/{model_name}"
         self.api_key = api_key or os.getenv("HUGGINGFACE_API_KEY", "")
-        
-        self.headers = {}
+        self.headers = {"Content-Type": "application/json"}
         if self.api_key:
             self.headers["Authorization"] = f"Bearer {self.api_key}"
-        
-        logger.info(f"API Predictor initialized: {model_name}")
-        logger.info(f"API URL: {self.api_url}")
-        logger.info(f"Using API Key: {'Yes' if self.api_key else 'No (rate limited)'}")
-    
+        logger.info(f"APIPredictor ready | model={model_name} | key={'yes' if self.api_key else 'no'}")
+
+    def _call_hf_api(self, image_data: bytes, model: str, timeout: int = 60) -> requests.Response:
+        """Call HF Inference API using base64-encoded JSON body (works without an API key)."""
+        # New HuggingFace router endpoint - replaced the deprecated api-inference endpoint
+        url = f"https://router.huggingface.co/hf-inference/models/{model}"
+        b64 = base64.b64encode(image_data).decode("utf-8")
+        payload = {"inputs": b64}
+        return requests.post(url, headers=self.headers, json=payload, timeout=timeout)
+
     def predict(self, image_path: str, method: str = "beam_search", max_length: int = 50, beam_width: int = 5) -> dict:
-        """
-        Generate caption for an image using Hugging Face API.
-        
-        Args:
-            image_path: Path to the image file
-            method: Generation method (ignored for API)
-            max_length: Maximum caption length (ignored for API)
-            
-        Returns:
-            Dictionary with caption, inference_time_ms, model_version, and method
-        """
+        """Generate caption for an image via Hugging Face Inference API."""
         start_time = time.time()
-        
-        try:
-            # Read image file
-            with open(image_path, "rb") as f:
-                image_data = f.read()
-            
-            logger.info(f"Sending request to Hugging Face API: {self.api_url}")
-            
-            # Make API request
-            response = requests.post(
-                self.api_url,
-                headers=self.headers,
-                data=image_data,
-                timeout=30
-            )
-            
-            # Check for errors
-            if response.status_code == 503:
-                logger.warning("Model is loading on Hugging Face servers, retrying...")
-                # Model is loading, wait and retry
-                time.sleep(5)
-                response = requests.post(
-                    self.api_url,
-                    headers=self.headers,
-                    data=image_data,
-                    timeout=30
-                )
-            
-            response.raise_for_status()
-            
-            # Parse response
-            result = response.json()
-            logger.info(f"API Response: {result}")
-            
-            # Extract caption
-            if isinstance(result, list) and len(result) > 0:
-                caption = result[0].get("generated_text", "")
-            elif isinstance(result, dict):
-                caption = result.get("generated_text", "")
-            else:
-                caption = str(result)
-            
-            inference_time = (time.time() - start_time) * 1000  # Convert to ms
-            
-            return {
-                "caption": caption,
-                "inference_time_ms": round(inference_time, 2),
-                "model_version": self.model_name,
-                "method": "huggingface_api",
-                "api_used": True
-            }
-            
-        except requests.exceptions.Timeout:
-            logger.error("API request timed out")
-            raise Exception("Image captioning service timeout - please try again")
-        
-        except requests.exceptions.RequestException as e:
-            logger.error(f"API request failed: {e}")
-            if hasattr(e.response, 'text'):
-                logger.error(f"Response: {e.response.text}")
-            raise Exception(f"Image captioning service error: {str(e)}")
-        
-        except Exception as e:
-            logger.error(f"Unexpected error: {e}")
-            raise Exception(f"Failed to generate caption: {str(e)}")
+
+        with open(image_path, "rb") as f:
+            image_data = f.read()
+
+        # Try primary model then fallbacks
+        models_to_try = [self.model_name] + [m for m in self.FALLBACK_MODELS if m != self.model_name]
+        last_error = None
+
+        for model in models_to_try:
+            try:
+                logger.info(f"Trying HF API with model: {model}")
+                response = self._call_hf_api(image_data, model)
+
+                # Handle model loading (503) — wait and retry once
+                if response.status_code == 503:
+                    logger.warning(f"Model {model} is warming up, retrying in 10s...")
+                    time.sleep(10)
+                    response = self._call_hf_api(image_data, model, timeout=90)
+
+                # Skip models that are gone/unavailable
+                if response.status_code in (404, 410):
+                    logger.warning(f"Model {model} unavailable (HTTP {response.status_code}), trying next...")
+                    continue
+
+                response.raise_for_status()
+                result = response.json()
+                logger.info(f"HF API response from {model}: {result}")
+
+                # Extract caption from response
+                if isinstance(result, list) and len(result) > 0:
+                    caption = result[0].get("generated_text", "")
+                elif isinstance(result, dict):
+                    caption = result.get("generated_text", "")
+                else:
+                    caption = str(result)
+
+                inference_time_ms = round((time.time() - start_time) * 1000, 2)
+                return {
+                    "caption": caption,
+                    "inference_time_ms": inference_time_ms,
+                    "model_version": model,
+                    "method": "huggingface_api",
+                    "api_used": True,
+                }
+
+            except requests.exceptions.Timeout:
+                last_error = f"Timeout for model {model}"
+                logger.warning(last_error)
+                continue
+            except Exception as e:
+                last_error = str(e)
+                logger.warning(f"Model {model} failed: {e}")
+                continue
+
+        raise Exception(f"All HuggingFace API models failed. Last error: {last_error}")
     
     def batch_predict(self, image_paths: list, method: str = "beam_search", max_length: int = 50) -> list:
         """

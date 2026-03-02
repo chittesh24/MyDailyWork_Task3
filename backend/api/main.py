@@ -70,18 +70,17 @@ predictor = None
 
 
 def get_predictor():
-    """Get or initialize predictor — fully free local inference, no external API."""
+    """Get or initialize predictor using Hugging Face Inference API (zero memory footprint)."""
     global predictor
     if predictor is None:
-        model_name = os.getenv('PRETRAINED_MODEL', 'nlpconnect/vit-gpt2-image-captioning')
         try:
-            logger.info(f"Loading local model: {model_name} ...")
-            from inference.pretrained_predictor import PretrainedPredictor
-            predictor = PretrainedPredictor(model_name=model_name)
-            logger.info("✓ Local predictor initialized (model loads on first request)")
+            from inference.api_predictor import APIPredictor
+            model_name = os.getenv('PRETRAINED_MODEL', 'Salesforce/blip-image-captioning-base')
+            predictor = APIPredictor(model_name=model_name)
+            logger.info(f"✓ APIPredictor initialized with model: {model_name}")
         except Exception as e:
-            logger.error(f"Local predictor failed to initialize: {e}")
-            raise RuntimeError(f"Could not load captioning model: {e}")
+            logger.error(f"APIPredictor init failed: {e}")
+            raise RuntimeError(f"Could not initialize caption predictor: {e}")
     return predictor
 
 
