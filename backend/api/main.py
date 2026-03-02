@@ -34,7 +34,6 @@ from .rate_limiter import RateLimiter
 from .utils import validate_image, save_upload_file
 from database.database import get_db, init_db
 from database.models import User, APIKey, Caption, Usage
-from inference.predictor import CaptionPredictor
 from .error_handlers import register_error_handlers
 
 load_dotenv()
