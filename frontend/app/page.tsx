@@ -5,79 +5,66 @@ import toast, { Toaster } from 'react-hot-toast'
 import Navbar from '@/components/Navbar'
 import CaptionResult from '@/components/CaptionResult'
 
-let transformersPipeline: any = null
+// Store pipeline outside React state — React clones/serializes state
+// which breaks the Pipeline object. useRef holds the live reference.
+const captionerRef = { current: null as any }
 
 export default function Home() {
-  const [captioner, setCaptioner] = useState<any>(null)
+  const [modelLoaded, setModelLoaded] = useState(false)
   const [isLoadingModel, setIsLoadingModel] = useState(false)
   const [loadingProgress, setLoadingProgress] = useState(0)
   const [loadingMessage, setLoadingMessage] = useState('')
   const [imagePreview, setImagePreview] = useState<string | null>(null)
-  const imageFileRef = useRef<File | null>(null)
   const [caption, setCaption] = useState<string | null>(null)
   const [inferenceTime, setInferenceTime] = useState<number | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
+  const imageDataUrlRef = useRef<string | null>(null)
   const demoRef = useRef<HTMLDivElement>(null)
 
-  // Load Transformers.js
-  useEffect(() => {
-    const loadTransformers = async () => {
-      try {
-        const mod = await import('@xenova/transformers')
-
-        const pipelineFn = mod.pipeline
-        transformersPipeline = pipelineFn
-
-        // ✅ Stable browser config
-        mod.env.allowLocalModels = false
-        mod.env.allowRemoteModels = true
-        mod.env.useBrowserCache = true
-
-        // ✅ Disable workers (prevents crashes)
-        mod.env.backends.onnx.wasm.numThreads = 1
-        mod.env.backends.onnx.wasm.simd = false
-        mod.env.backends.onnx.wasm.proxy = false
-
-        console.log('Transformers initialized correctly')
-      } catch (error) {
-        console.error('Failed to load Transformers.js:', error)
-      }
-    }
-
-    loadTransformers()
-  }, [])
+  // Prevent SSR/hydration mismatch — only render interactive UI client-side
+  useEffect(() => { setIsMounted(true) }, [])
 
   const loadModel = async () => {
-    if (!transformersPipeline) {
-      toast.error('AI library not ready yet.')
-      return
-    }
-
     setIsLoadingModel(true)
     setLoadingProgress(0)
-    setLoadingMessage('Connecting to model...')
+    setLoadingMessage('Loading AI library...')
 
     try {
-      const model = await transformersPipeline(
+      // Dynamically import to ensure browser-only execution
+      const { pipeline, env } = await import('@xenova/transformers')
+
+      // Configure for browser WASM execution
+      env.allowLocalModels = false
+      env.allowRemoteModels = true
+      env.useBrowserCache = true
+      env.backends.onnx.wasm.numThreads = 1
+
+      setLoadingMessage('Downloading model files...')
+
+      const pipe = await pipeline(
         'image-to-text',
         'Xenova/vit-gpt2-image-captioning',
         {
-          progress_callback: (progress: any) => {
-            if (progress.status === 'progress' && progress.progress !== undefined) {
-              setLoadingProgress(Math.round(progress.progress))
-              setLoadingMessage(`Downloading model... ${Math.round(progress.progress)}%`)
-            } else if (progress.status === 'done') {
-              setLoadingMessage('Finalizing model...')
+          progress_callback: (p: any) => {
+            if (p.status === 'progress' && p.progress != null) {
+              const pct = Math.round(p.progress)
+              setLoadingProgress(pct)
+              setLoadingMessage(`Downloading model... ${pct}%`)
+            } else if (p.status === 'done') {
+              setLoadingMessage('Finalizing...')
             }
           },
         }
       )
 
-      setCaptioner(model)
-      toast.success('Model loaded successfully!')
-    } catch (error) {
-      console.error(error)
-      toast.error('Model loading failed.')
+      // Store in module-level ref — NOT in React state
+      captionerRef.current = pipe
+      setModelLoaded(true)
+      toast.success('Model loaded! Upload an image to caption it.')
+    } catch (err: any) {
+      console.error('Model load error:', err)
+      toast.error(`Failed to load model: ${err?.message || err}`)
     } finally {
       setIsLoadingModel(false)
       setLoadingMessage('')
@@ -89,15 +76,14 @@ export default function Home() {
       toast.error('Invalid file. Use PNG, JPG, WEBP under 10MB.')
       return
     }
-
     const file = acceptedFiles[0]
     if (!file) return
 
-    imageFileRef.current = file
-
     const reader = new FileReader()
     reader.onload = (e) => {
-      setImagePreview(e.target?.result as string)
+      const dataUrl = e.target?.result as string
+      imageDataUrlRef.current = dataUrl
+      setImagePreview(dataUrl)
       setCaption(null)
       setInferenceTime(null)
     }
@@ -113,12 +99,11 @@ export default function Home() {
   })
 
   const generateCaption = async () => {
-    if (!imageFileRef.current) {
+    if (!imageDataUrlRef.current) {
       toast.error('Please upload an image first')
       return
     }
-
-    if (!captioner) {
+    if (!captionerRef.current) {
       toast.error('Please load the AI model first')
       return
     }
@@ -126,39 +111,29 @@ export default function Home() {
     setIsGenerating(true)
     setCaption(null)
     setInferenceTime(null)
-
     const startTime = performance.now()
 
     try {
-      // Convert file to base64 data URL — @xenova/transformers v2 accepts URL strings
-      const dataUrl: string = await new Promise((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = (e) => resolve(e.target?.result as string)
-        reader.onerror = reject
-        reader.readAsDataURL(imageFileRef.current!)
-      })
-
-      const result = await captioner(dataUrl, {
+      // Pass data URL string — the only input type supported by @xenova/transformers v2
+      const result = await captionerRef.current(imageDataUrlRef.current, {
         max_new_tokens: 50,
         num_beams: 4,
         do_sample: false,
       })
 
       const time = Math.round(performance.now() - startTime)
-
-      const text =
-        Array.isArray(result)
-          ? result[0]?.generated_text || result[0]?.text || ''
-          : result?.generated_text || result?.text || ''
+      const text = Array.isArray(result)
+        ? result[0]?.generated_text || ''
+        : result?.generated_text || ''
 
       if (!text) throw new Error('Empty caption returned')
 
       setCaption(text.trim())
       setInferenceTime(time)
       toast.success(`Caption ready in ${time}ms! ✨`)
-    } catch (error) {
-      console.error('Caption generation failed:', error)
-      toast.error('Failed to generate caption.')
+    } catch (err: any) {
+      console.error('Caption generation failed:', err)
+      toast.error(`Failed: ${err?.message || 'Unknown error'}`)
     } finally {
       setIsGenerating(false)
     }
@@ -189,62 +164,61 @@ export default function Home() {
       </section>
 
       <section ref={demoRef} className="max-w-3xl mx-auto p-6 space-y-6">
-        {!captioner && !isLoadingModel && (
-          <button
-            onClick={loadModel}
-            className="w-full py-3 bg-indigo-600 text-white rounded-lg"
-          >
-            Load AI Model (~250MB)
-          </button>
-        )}
-
-        {isLoadingModel && (
-          <div>
-            <p>{loadingMessage}</p>
-            <div className="w-full bg-gray-300 h-2 rounded">
-              <div
-                className="bg-indigo-600 h-2 rounded"
-                style={{ width: `${loadingProgress}%` }}
-              />
-            </div>
-          </div>
-        )}
-
-        {captioner && (
+        {/* Only render interactive UI after client-side mount to avoid hydration mismatch */}
+        {isMounted && (
           <>
-            <div
-              {...getRootProps()}
-              className={`p-10 border-2 border-dashed rounded-lg text-center cursor-pointer ${
-                isDragActive ? 'border-indigo-500' : 'border-gray-400'
-              }`}
-            >
-              <input {...getInputProps()} />
-              {imagePreview ? (
-                <img
-                  src={imagePreview}
-                  className="max-h-64 mx-auto"
-                  alt="Preview"
-                />
-              ) : (
-                <p>Drag & drop image or click to upload</p>
-              )}
-            </div>
-
-            {imagePreview && (
+            {!modelLoaded && !isLoadingModel && (
               <button
-                onClick={generateCaption}
-                disabled={isGenerating}
-                className="w-full py-3 bg-indigo-600 text-white rounded-lg"
+                onClick={loadModel}
+                className="w-full py-3 bg-indigo-600 text-white rounded-lg font-semibold"
               >
-                {isGenerating ? 'Generating...' : 'Generate Caption'}
+                Load AI Model (~250MB)
               </button>
             )}
 
-            {caption && (
-              <CaptionResult
-                caption={caption}
-                inferenceTime={inferenceTime}
-              />
+            {isLoadingModel && (
+              <div className="space-y-2">
+                <p className="text-sm text-gray-500">{loadingMessage}</p>
+                <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
+                  <div
+                    className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${loadingProgress}%` }}
+                  />
+                </div>
+                <p className="text-xs text-gray-400 text-right">{loadingProgress}%</p>
+              </div>
+            )}
+
+            {modelLoaded && (
+              <>
+                <div
+                  {...getRootProps()}
+                  className={`p-10 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors ${
+                    isDragActive ? 'border-indigo-500 bg-indigo-50' : 'border-gray-400'
+                  }`}
+                >
+                  <input {...getInputProps()} />
+                  {imagePreview ? (
+                    <img src={imagePreview} className="max-h-64 mx-auto rounded" alt="Preview" />
+                  ) : (
+                    <p className="text-gray-500">Drag & drop an image or click to upload</p>
+                  )}
+                </div>
+
+                {imagePreview && (
+                  <button
+                    onClick={generateCaption}
+                    disabled={isGenerating}
+                    className="w-full py-3 bg-indigo-600 text-white rounded-lg font-semibold disabled:opacity-50"
+                  >
+                    {isGenerating ? 'Generating caption...' : 'Generate Caption'}
+                  </button>
+                )}
+
+                {caption && (
+                  <CaptionResult caption={caption} inferenceTime={inferenceTime} />
+                )}
+              </>
             )}
           </>
         )}
