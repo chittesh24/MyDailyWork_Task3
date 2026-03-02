@@ -19,7 +19,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning className="dark">
-      <body className={`${inter.className} min-h-screen antialiased selection:bg-primary-500/30`}>
+      <body suppressHydrationWarning className={`${inter.className} min-h-screen antialiased selection:bg-primary-500/30`}>
         <ThemeProvider>
           {children}
           <Toaster

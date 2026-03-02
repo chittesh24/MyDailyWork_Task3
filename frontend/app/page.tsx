@@ -1,5 +1,4 @@
 'use client'
-export const dynamic = 'force-dynamic'
 import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { useDropzone } from 'react-dropzone'
 import toast, { Toaster } from 'react-hot-toast'
@@ -61,7 +60,7 @@ export default function Home() {
     try {
       const model = await transformersPipeline(
         'image-to-text',
-        'Xenova/blip-image-captioning-base',
+        'Xenova/vit-gpt2-image-captioning',
         {
           progress_callback: (progress: any) => {
             if (progress.status === 'progress' && progress.progress !== undefined) {
@@ -170,7 +169,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" suppressHydrationWarning>
       <Toaster position="top-center" />
       <Navbar />
 
@@ -195,7 +194,7 @@ export default function Home() {
             onClick={loadModel}
             className="w-full py-3 bg-indigo-600 text-white rounded-lg"
           >
-            Load AI Model (~350MB)
+            Load AI Model (~250MB)
           </button>
         )}
 
