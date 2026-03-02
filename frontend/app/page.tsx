@@ -130,17 +130,17 @@ export default function Home() {
     const startTime = performance.now()
 
     try {
-      // ✅ Create HTMLImageElement (MOST STABLE INPUT)
-      const img = new Image()
-      img.src = URL.createObjectURL(imageFileRef.current)
-
-      await new Promise((resolve) => {
-        img.onload = resolve
+      // Convert file to base64 data URL — @xenova/transformers v2 accepts URL strings
+      const dataUrl: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = (e) => resolve(e.target?.result as string)
+        reader.onerror = reject
+        reader.readAsDataURL(imageFileRef.current!)
       })
 
-      const result = await captioner(img, {
+      const result = await captioner(dataUrl, {
         max_new_tokens: 50,
-        num_beams: 5,
+        num_beams: 4,
         do_sample: false,
       })
 
