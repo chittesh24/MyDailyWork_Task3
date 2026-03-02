@@ -22,15 +22,11 @@ services:
       - key: DEVICE
         value: cpu
       - key: PRETRAINED_MODEL
-        value: nlpconnect/vit-gpt2-image-captioning
-      - key: TRANSFORMERS_CACHE
-        value: /tmp/transformers_cache
-      - key: HF_HOME
-        value: /tmp/huggingface
+        value: Salesforce/blip-image-captioning-base
+      - key: HUGGINGFACE_API_KEY
+        sync: false
       - key: ALLOWED_ORIGINS
         value: "*"
-      - key: PIP_EXTRA_INDEX_URL
-        value: https://download.pytorch.org/whl/cpu
 
   # Database
   - type: pgsql

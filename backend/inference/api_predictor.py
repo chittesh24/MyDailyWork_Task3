@@ -29,12 +29,14 @@ class APIPredictor:
         logger.info(f"APIPredictor ready | model={model_name} | key={'yes' if self.api_key else 'no'}")
 
     def _call_hf_api(self, image_data: bytes, model: str, timeout: int = 60) -> requests.Response:
-        """Call HF Inference API using base64-encoded JSON body (works without an API key)."""
-        # New HuggingFace router endpoint - replaced the deprecated api-inference endpoint
+        """Call HF Inference API using raw binary body + Authorization header."""
+        # New HuggingFace router endpoint (replaced deprecated api-inference.huggingface.co)
         url = f"https://router.huggingface.co/hf-inference/models/{model}"
-        b64 = base64.b64encode(image_data).decode("utf-8")
-        payload = {"inputs": b64}
-        return requests.post(url, headers=self.headers, json=payload, timeout=timeout)
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/octet-stream",
+        }
+        return requests.post(url, headers=headers, data=image_data, timeout=timeout)
 
     def predict(self, image_path: str, method: str = "beam_search", max_length: int = 50, beam_width: int = 5) -> dict:
         """Generate caption for an image via Hugging Face Inference API."""
