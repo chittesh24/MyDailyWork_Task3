@@ -36,10 +36,6 @@ export default function Home() {
         transformers.env.allowRemoteModels = true
 
         // 🔥 FIX WASM BACKEND
-        transformers.env.backends.onnx.wasm.simd = false
-        transformers.env.backends.onnx.wasm.proxy = false
-        transformers.env.backends.onnx.wasm.wasmPaths =
-          'https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/'
 
         console.log('Transformers initialized correctly')
       } catch (error) {
@@ -143,11 +139,8 @@ export default function Home() {
       const startTime = performance.now()
 
       try {
-        // Convert file → ArrayBuffer → Uint8Array
-        const arrayBuffer = await imageFileRef.current.arrayBuffer()
-        const uint8 = new Uint8Array(arrayBuffer)
-
-        const result = await captioner(uint8, {
+        // ✅ BEST PRACTICE: pass File directly
+        const result = await captioner(imageFileRef.current, {
           max_new_tokens: 50,
           num_beams: 5,
           do_sample: false,
