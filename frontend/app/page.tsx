@@ -90,32 +90,32 @@ export default function Home() {
     }
 
     const file = acceptedFiles[0]
-    if (!file) return
+      if (!file) return
 
-    if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current)
+      if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current)
 
-    imageFileRef.current = file
-    blobUrlRef.current = URL.createObjectURL(file)
+      imageFileRef.current = file
+      blobUrlRef.current = URL.createObjectURL(file)
 
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      setImagePreview(e.target?.result as string)
-      setCaption(null)
-      setInferenceTime(null)
-    }
-    reader.readAsDataURL(file)
-  }, [])
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string)
+        setCaption(null)
+        setInferenceTime(null)
+      }
+      reader.readAsDataURL(file)
+    }, [])
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: { 'image/*': ['.png', '.jpg', '.jpeg', '.webp'] },
-    maxFiles: 1,
-    maxSize: 10 * 1024 * 1024,
-    disabled: isGenerating || isLoadingModel,
-  })
+    const { getRootProps, getInputProps, isDragActive } = useDropzone({
+      onDrop,
+      accept: { 'image/*': ['.png', '.jpg', '.jpeg', '.webp'] },
+      maxFiles: 1,
+      maxSize: 10 * 1024 * 1024,
+      disabled: isGenerating || isLoadingModel,
+    })
 
-  const generateCaption = async () => {
-    if (!imageFileRef.current) {
+    const generateCaption = async () => {
+    if (!blobUrlRef.current) {
       toast.error('Please upload an image first')
       return
     }
@@ -132,8 +132,8 @@ export default function Home() {
     const startTime = performance.now()
 
     try {
-      // Convert File → Blob (safe input type)
-      const result = await captioner(imageFileRef.current, {
+      // PASS BLOB URL STRING (most stable input type)
+      const result = await captioner(blobUrlRef.current, {
         max_new_tokens: 50,
         num_beams: 5,
         do_sample: false,
