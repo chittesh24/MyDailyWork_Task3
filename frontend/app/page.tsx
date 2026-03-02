@@ -62,15 +62,20 @@ export default function Home() {
       const model = await transformersPipeline(
         'image-to-text',
         'Xenova/blip-image-captioning-base',
-        { revision: 'main' }
-      )
+        {
+          progress_callback: (progress: any) => {
+            if (progress.status === 'progress' && progress.progress !== undefined) {
+              setLoadingProgress(Math.round(progress.progress))
+              setLoadingMessage(`Downloading model... ${Math.round(progress.progress)}%`)
+            } else if (progress.status === 'done') {
+              setLoadingMessage('Finalizing model...')
             }
           },
         }
       )
 
-    setCaptioner(model)
-    toast.success('Model loaded successfully!')
+      setCaptioner(model)
+      toast.success('Model loaded successfully!')
     } catch (error) {
       console.error(error)
       toast.error('Model loading failed.')
