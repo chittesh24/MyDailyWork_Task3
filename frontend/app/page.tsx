@@ -116,29 +116,24 @@ export default function Home() {
 
   const generateCaption = async () => {
     if (!imageFileRef.current) {
-      toast.error('Upload an image first.')
+      toast.error('Please upload an image first')
       return
     }
 
     if (!captioner) {
-      toast.error('Load the AI model first.')
+      toast.error('Please load the AI model first')
       return
     }
 
     setIsGenerating(true)
     setCaption(null)
     setInferenceTime(null)
+
     const startTime = performance.now()
 
     try {
-      const imageElement = await new Promise<HTMLImageElement>((resolve, reject) => {
-        const img = new Image()
-        img.onload = () => resolve(img)
-        img.onerror = reject
-        img.src = URL.createObjectURL(imageFileRef.current!)
-      })
-
-      const result = await captioner(imageElement, {
+      // Convert File → Blob (safe input type)
+      const result = await captioner(imageFileRef.current, {
         max_new_tokens: 50,
         num_beams: 5,
         do_sample: false,
@@ -155,10 +150,10 @@ export default function Home() {
 
       setCaption(text.trim())
       setInferenceTime(time)
-      toast.success(`Caption generated in ${time}ms`)
+      toast.success(`Caption ready in ${time}ms! ✨`)
     } catch (error) {
-      console.error(error)
-      toast.error('Caption generation failed.')
+      console.error('Caption generation failed:', error)
+      toast.error('Failed to generate caption. Please try again.')
     } finally {
       setIsGenerating(false)
     }
