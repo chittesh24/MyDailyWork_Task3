@@ -20,11 +20,16 @@ psycopg2-binary==2.9.9
 sqlalchemy==2.0.23
 alembic==1.12.1
 
-# Image handling (lightweight - only for upload validation)
-Pillow==10.1.0
+# ML - local inference (fully free, no API calls)
+# CPU-only torch — ~800MB vs ~4GB for full torch
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.2.0+cpu
+torchvision==0.17.0+cpu
+transformers==4.35.0
+accelerate==0.25.0
 
-# HTTP client (for HuggingFace Inference API calls)
-requests==2.31.0
+# Image handling
+Pillow==10.1.0
 
 # Utilities
 python-dotenv==1.0.0

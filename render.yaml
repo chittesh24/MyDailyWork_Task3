@@ -21,16 +21,16 @@ services:
         generateValue: true
       - key: DEVICE
         value: cpu
-      - key: USE_PRETRAINED
-        value: true
       - key: PRETRAINED_MODEL
-        value: Salesforce/blip-image-captioning-base
+        value: nlpconnect/vit-gpt2-image-captioning
       - key: TRANSFORMERS_CACHE
         value: /tmp/transformers_cache
       - key: HF_HOME
         value: /tmp/huggingface
       - key: ALLOWED_ORIGINS
         value: "*"
+      - key: PIP_EXTRA_INDEX_URL
+        value: https://download.pytorch.org/whl/cpu
 
   # Database
   - type: pgsql

@@ -71,33 +71,18 @@ predictor = None
 
 
 def get_predictor():
-    """Get or initialize predictor using Hugging Face API (zero memory footprint!)."""
+    """Get or initialize predictor — fully free local inference, no external API."""
     global predictor
     if predictor is None:
-        use_pretrained = os.getenv('USE_PRETRAINED', 'true').lower() == 'true'
-        
-        if use_pretrained:
-            # Use Hugging Face Inference API - NO local model loading!
-            try:
-                logger.info("Initializing API-based predictor (Hugging Face Inference API)...")
-                from inference.api_predictor import APIPredictor
-                model_name = os.getenv('PRETRAINED_MODEL', 'Salesforce/blip-image-captioning-base')
-                predictor = APIPredictor(model_name=model_name)
-                logger.info("✓ API-based predictor initialized successfully!")
-                logger.info("✓ ZERO MEMORY FOOTPRINT - Using external API")
-            except Exception as e:
-                logger.error(f"API predictor failed: {e}")
-                logger.warning("Using demo predictor as fallback")
-                from inference.demo_predictor import DemoPredictor
-                predictor = DemoPredictor()
-        else:
-            # Use custom trained model (or demo as fallback)
-            logger.warning("Custom models not supported in memory-constrained environment")
-            logger.info("Using API predictor instead...")
-            from inference.api_predictor import APIPredictor
-            model_name = os.getenv('PRETRAINED_MODEL', 'Salesforce/blip-image-captioning-base')
-            predictor = APIPredictor(model_name=model_name)
-    
+        model_name = os.getenv('PRETRAINED_MODEL', 'nlpconnect/vit-gpt2-image-captioning')
+        try:
+            logger.info(f"Loading local model: {model_name} ...")
+            from inference.pretrained_predictor import PretrainedPredictor
+            predictor = PretrainedPredictor(model_name=model_name)
+            logger.info("✓ Local predictor initialized (model loads on first request)")
+        except Exception as e:
+            logger.error(f"Local predictor failed to initialize: {e}")
+            raise RuntimeError(f"Could not load captioning model: {e}")
     return predictor
 
 
@@ -375,14 +360,11 @@ async def generate_caption(
         
         predictor = get_predictor()
         
-        # Use improved prediction with quality check
         result = predictor.predict(
             image_path,
             method=method,
             beam_width=beam_width,
             max_length=50,
-            temperature=1.0,
-            return_probs=True
         )
         
         # Handle different return types
