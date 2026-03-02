@@ -30,12 +30,13 @@ class APIPredictor:
 
     def _call_hf_api(self, image_data: bytes, model: str, timeout: int = 60) -> requests.Response:
         """Call HF Inference API using raw binary body + Authorization header."""
-        # New HuggingFace router endpoint (replaced deprecated api-inference.huggingface.co)
+        # Always re-read api_key from env at call time (in case env was set after import)
+        api_key = self.api_key or os.getenv("HUGGINGFACE_API_KEY", "")
         url = f"https://router.huggingface.co/hf-inference/models/{model}"
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/octet-stream",
-        }
+        headers = {"Content-Type": "application/octet-stream"}
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+        logger.info(f"HF API call → {url} | auth={'yes' if api_key else 'NO KEY SET'}")
         return requests.post(url, headers=headers, data=image_data, timeout=timeout)
 
     def predict(self, image_path: str, method: str = "beam_search", max_length: int = 50, beam_width: int = 5) -> dict:
@@ -44,6 +45,11 @@ class APIPredictor:
 
         with open(image_path, "rb") as f:
             image_data = f.read()
+
+        # Re-read api_key at predict time (env may have been set after startup)
+        self.api_key = os.getenv("HUGGINGFACE_API_KEY", self.api_key)
+        if not self.api_key:
+            raise Exception("HUGGINGFACE_API_KEY is not set. Please add it to your Render environment variables.")
 
         # Try primary model then fallbacks
         models_to_try = [self.model_name] + [m for m in self.FALLBACK_MODELS if m != self.model_name]
@@ -63,7 +69,12 @@ class APIPredictor:
                 # Skip models that are gone/unavailable
                 if response.status_code in (404, 410):
                     logger.warning(f"Model {model} unavailable (HTTP {response.status_code}), trying next...")
+                    last_error = f"Model {model} returned HTTP {response.status_code}"
                     continue
+
+                # 401 means bad/missing token — raise immediately (no point trying other models)
+                if response.status_code == 401:
+                    raise Exception("HuggingFace API key is invalid or missing. Please check HUGGINGFACE_API_KEY in Render env vars.")
 
                 response.raise_for_status()
                 result = response.json()
@@ -76,6 +87,11 @@ class APIPredictor:
                     caption = result.get("generated_text", "")
                 else:
                     caption = str(result)
+
+                if not caption:
+                    last_error = f"Empty caption from {model}"
+                    logger.warning(last_error)
+                    continue
 
                 inference_time_ms = round((time.time() - start_time) * 1000, 2)
                 return {
@@ -92,8 +108,8 @@ class APIPredictor:
                 continue
             except Exception as e:
                 last_error = str(e)
-                logger.warning(f"Model {model} failed: {e}")
-                continue
+                logger.error(f"Model {model} failed: {e}")
+                raise  # Re-raise auth errors immediately
 
         raise Exception(f"All HuggingFace API models failed. Last error: {last_error}")
     
