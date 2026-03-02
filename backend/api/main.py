@@ -112,6 +112,19 @@ async def health_check():
     }
 
 
+@app.get("/debug/env")
+async def debug_env():
+    """Debug endpoint to check env var status (non-sensitive info only)."""
+    hf_key = os.getenv("HUGGINGFACE_API_KEY", "")
+    return {
+        "deploy_version": "2026-03-02-v3",
+        "hf_key_set": bool(hf_key),
+        "hf_key_length": len(hf_key),
+        "hf_key_prefix": hf_key[:6] if hf_key else "not set",
+        "pretrained_model": os.getenv("PRETRAINED_MODEL", "Salesforce/blip-image-captioning-base"),
+    }
+
+
 @app.post("/auth/register", response_model=Token)
 async def register(user: UserCreate, db: Session = Depends(get_db)):
     """
