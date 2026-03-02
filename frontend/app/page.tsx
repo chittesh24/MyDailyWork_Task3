@@ -115,49 +115,52 @@ export default function Home() {
     })
 
     const generateCaption = async () => {
-    if (!blobUrlRef.current) {
-      toast.error('Please upload an image first')
-      return
+      if (!imageFileRef.current) {
+        toast.error('Please upload an image first')
+        return
+      }
+
+      if (!captioner) {
+        toast.error('Please load the AI model first')
+        return
+      }
+
+      setIsGenerating(true)
+      setCaption(null)
+      setInferenceTime(null)
+
+      const startTime = performance.now()
+
+      try {
+        // Convert file → ArrayBuffer → Uint8Array
+        const arrayBuffer = await imageFileRef.current.arrayBuffer()
+        const uint8 = new Uint8Array(arrayBuffer)
+
+        const result = await captioner(uint8, {
+          max_new_tokens: 50,
+          num_beams: 5,
+          do_sample: false,
+        })
+
+        const time = Math.round(performance.now() - startTime)
+
+        const text =
+          Array.isArray(result)
+            ? result[0]?.generated_text || result[0]?.text || ''
+            : result?.generated_text || result?.text || ''
+
+        if (!text) throw new Error('Empty caption returned')
+
+        setCaption(text.trim())
+        setInferenceTime(time)
+        toast.success(`Caption ready in ${time}ms! ✨`)
+      } catch (error) {
+        console.error('Caption generation failed:', error)
+        toast.error('Failed to generate caption.')
+      } finally {
+        setIsGenerating(false)
+      }
     }
-
-    if (!captioner) {
-      toast.error('Please load the AI model first')
-      return
-    }
-
-    setIsGenerating(true)
-    setCaption(null)
-    setInferenceTime(null)
-
-    const startTime = performance.now()
-
-    try {
-      // PASS BLOB URL STRING (most stable input type)
-      const result = await captioner(blobUrlRef.current, {
-        max_new_tokens: 50,
-        num_beams: 5,
-        do_sample: false,
-      })
-
-      const time = Math.round(performance.now() - startTime)
-
-      const text =
-        Array.isArray(result)
-          ? result[0]?.generated_text || result[0]?.text || ''
-          : result?.generated_text || result?.text || ''
-
-      if (!text) throw new Error('Empty caption returned')
-
-      setCaption(text.trim())
-      setInferenceTime(time)
-      toast.success(`Caption ready in ${time}ms! ✨`)
-    } catch (error) {
-      console.error('Caption generation failed:', error)
-      toast.error('Failed to generate caption. Please try again.')
-    } finally {
-      setIsGenerating(false)
-    }
-  }
 
   const scrollToDemo = () => {
     demoRef.current?.scrollIntoView({ behavior: 'smooth' })
