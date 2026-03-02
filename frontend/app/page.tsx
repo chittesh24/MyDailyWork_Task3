@@ -27,15 +27,26 @@ export default function Home() {
     const loadTransformers = async () => {
       try {
         const transformers = await import('@xenova/transformers')
+
         transformersPipeline = transformers.pipeline
-        const env = transformers.env
-        env.allowLocalModels = false
-        env.useBrowserCache = true
-        env.allowRemoteModels = true
+
+        // ENV CONFIGURATION (CRITICAL FIX)
+        transformers.env.allowLocalModels = false
+        transformers.env.useBrowserCache = true
+        transformers.env.allowRemoteModels = true
+
+        // 🔥 FIX WASM BACKEND
+        transformers.env.backends.onnx.wasm.simd = false
+        transformers.env.backends.onnx.wasm.proxy = false
+        transformers.env.backends.onnx.wasm.wasmPaths =
+          'https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/'
+
+        console.log('Transformers initialized correctly')
       } catch (error) {
         console.error('Failed to load Transformers.js:', error)
       }
     }
+
     loadTransformers()
   }, [])
 
